@@ -64,11 +64,11 @@ function reset() {
   sickHistory[runId].color = getRandomColor();
   sickHistory[runId].values = [];
   currentSickCount = 0;
-  
+
   // Read the initial particle & sick counts from the slider values
   stationaryProbability = stationaryProbabilitySlider.value();
   startSickCount = sickSlider.value();
-  
+
   // Create healthy particles
   Array(particleCount - startSickCount).fill().forEach(() => particles.push(new Particle()));
   // Create sick particles
@@ -96,12 +96,12 @@ function setup() {
   // Create a slider to let user input the sick count at the beginning of simulation
   sickSlider = createSlider(1, 20, 5, 1);
   sickSlider.position(125, Y_MARGINAL_TOP/3);
-  
+
   // Create a slider to let user input the probability for a particle to start as a stationary
   // particle
   stationaryProbabilitySlider = createSlider(0.05, 0.95, 0.1, 0.1);
   stationaryProbabilitySlider.position(325, Y_MARGINAL_TOP/3);
-  
+
   // Create the actual canvas
   createCanvas(500, 700);
 }
@@ -120,7 +120,10 @@ function draw() {
     particle.update();
   });
 
-  // Text properties
+  // Update current sick count
+  currentSickCount = particles.filter(p => p.isInfected).length;
+
+  // Set text properties
   fill(0, 0, 0);
   textSize(16);
 
@@ -133,6 +136,7 @@ function draw() {
   text("20", sickSlider.x + sickSlider.width + 15, Y_MARGINAL_TOP/2);
   text("5%", stationaryProbabilitySlider.x - 25, Y_MARGINAL_TOP/2);
   text("95%", stationaryProbabilitySlider.x + stationaryProbabilitySlider.width + 15, Y_MARGINAL_TOP/2);
-  
+
+  // Finally, update the run specific statistics
   updateStats();
 }

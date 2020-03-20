@@ -49,37 +49,38 @@ class Particle {
 
   // Move the particle to the direction of the speed
   move() {
+    // Invert the x-speed if the particle hits the walls
     if(this.x <= 0 || this.x >= width) {
       this.xSpeed *= -1;
     }
+
+    // Invert the y-speed if the particle hits the ceiling or the floor
     if(this.y <= 0 + Y_MARGINAL_TOP + this.r / 2 || this.y >= height - Y_MARGINAL_BOTTOM - this.r / 2) {
       this.ySpeed *= -1;
     }
+
+    // Calculate new position
     this.x += this.xSpeed;
     this.y += this.ySpeed;
   }
 
   // Infect this particle
   getInfection() {
-    currentSickCount += 1;
     this.color = SICK_COLOR;
     this.isInfected = true;
 
-    // Store pointer to this instance since the anonymous function inside the setTimeout has
-    // different this scope.
-    const that = this;
+    // Create a timeout function to set the recovery of this particle.
     this.timeoutId = setTimeout(() => {
-      that.color = IMMUNE_COLOR;
-      that.isImmune = true;
-      that.isInfected = false;
-      currentSickCount -= 1;
-    }, random(0.5, 1) * HEALING_TIME * 1000);
+      this.color = IMMUNE_COLOR;
+      this.isImmune = true;
+      this.isInfected = false;
+    }, random(0.7, 1) * HEALING_TIME * 1000);
   }
 
   // Draw a line between this particle and its nearby particles. If any nearby particle is
   // infected, there is a chance also this particle gets infected.
   infect(particleArray) {
-    particleArray.forEach(neighbor =>{
+    particleArray.forEach((neighbor) => {
       const distance = dist(this.x, this.y, neighbor.x, neighbor.y);
       if(distance < INFECTION_RADIUS) {
         // Draw a black line between the point and the neighbor
