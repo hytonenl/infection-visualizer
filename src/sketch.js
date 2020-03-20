@@ -1,38 +1,20 @@
-const HEALTHY_COLOR = 'rgba(200, 200, 200, 0.7)';
-const SICK_COLOR = 'rgba(200, 50, 50, 0.7)';
-const IMMUNE_COLOR = 'rgba(0, 255, 0, 0.7)';
-
-const HEALING_TIME = 20; // Time it takes to heal from the infection (seconds)
-const INFECTION_THRESHOLD = 0.1; // Chance to contract the disease
-const INFECTION_RADIUS = 20; // Radius where the sick may contract the disease
-const SPEED_SCALE = 1.5; // Particle speed scale
 const Y_MARGINAL_TOP = 100; // Marginal size at the top of the canvas
 const Y_MARGINAL_BOTTOM = 100; // Marginal size at the bottom of the canvas
 
-// Variables for DOM elements on the top of the canvas
+// Variables for DOM elements at the top of the canvas
 let startButton;
-let clearHistoryButton;
+let clearAllButton;
 let sickSlider;
 let stationaryProbabilitySlider;
 
-// Array containing all the particles in the canvas
-let runId;
-let particles = [];
-let particleCount = 100;
-let sickCount = 3;
-let stationaryProbability;
-let currentSickCount = 0;
-let sickHistory = {};
-
-function makeid(length) {
-  var result = '';
-  var characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  var charactersLength = characters.length;
-  for ( var i = 0; i < length; i++ ) {
-     result += characters.charAt(floor(random(0, 1) * charactersLength));
-  }
-  return result;
-}
+// Runtime variables
+let runId;                  // Each run is assigned a unique runId to store run specific history.
+let particles = [];         // Array to store all the particles visible in the canvas.
+let particleCount = 100;    // Total number of particles in the canvas.
+let startSickCount = 3;     // Sick count at the beginning of the simulation.
+let stationaryProbability;  // Probability for a particle to be a stationary particle.
+let currentSickCount = 0;   // Count of sick particles at each frame.
+let sickHistory = {};       // Object to store history of previous runs. Visualized at the bottom of the canvas.
 
 // Update the statistics shown at the bottom of the canvas
 function updateStats() {
@@ -43,14 +25,14 @@ function updateStats() {
   textSize(20);
   text(currentSickCount, 10, height - 75);
 
-  // Refresh the sickHistory array every 20th frame so that it does not get too expensive to draw
+  // Refresh the sickHistory array only every 20th frame so that it does not get too expensive to draw
   if (frameCount % 20 === 0 && currentSickCount) {
     sickHistory[runId].values.push(currentSickCount);
   }
 
   // Draw a bar chart at the bottom of the page plotting time vs. sick count
   strokeWeight(2);
-  strokeCap(SQUARE);
+  strokeCap(ROUND);
   Object.values(sickHistory).forEach((run) => {
     stroke(run.color);
     for (let i = 0; i < run.values.length; i++) {
@@ -65,41 +47,16 @@ function updateStats() {
   });
 }
 
-function setup() {
-  // Create a start button which upon pressed resets the state and starts the simulation
-  startButton = createButton('START NEW');
-  startButton.position(10, Y_MARGINAL_TOP - 80);
-  startButton.mousePressed(reset);
-
-  // Create button to clean graphs
-  clearHistoryButton = createButton('CLEAR ALL');
-  clearHistoryButton.position(10, Y_MARGINAL_TOP - 50);
-  clearHistoryButton.mousePressed(clearAll);
-
-  // Create a slider to let user input the sick count at the beginning of simulation
-  sickSlider = createSlider(1, 20, 5, 1);
-  sickSlider.position(125, Y_MARGINAL_TOP/3);
-  
-  // Create a slider to let user input the total particlecount of the simulation
-  stationaryProbabilitySlider = createSlider(0.05, 0.95, 0.1, 0.1);
-  stationaryProbabilitySlider.position(325, Y_MARGINAL_TOP/3);
-  
-  createCanvas(500, 700);
-}
-
+// Clear the state, including the drawn sick history
 function clearAll() {
   sickHistory = {};
   reset();
 }
 
-function getRandomColor() {
-  return color(random(0, 255), random(0, 255), random(0, 255));
-}
-
 // Reset particles and start the simulation
 function reset() {
   // Assign new runId
-  runId = makeid(10);
+  runId = getRunId(10);
 
   // Clear the timeouts of any particles from previous run
   particles.forEach(particle => clearTimeout(particle.timeoutId));
@@ -113,28 +70,57 @@ function reset() {
   
   // Read the initial particle & sick counts from the slider values
   stationaryProbability = stationaryProbabilitySlider.value();
-  sickCount = sickSlider.value();
+  startSickCount = sickSlider.value();
   
   // Create healthy particles
-  Array(particleCount - sickCount).fill().forEach(() => particles.push(new Particle()));
+  Array(particleCount - startSickCount).fill().forEach(() => particles.push(new Particle()));
   // Create sick particles
-  Array(sickCount).fill().forEach(() => particles.push(new Particle(true)));
+  Array(startSickCount).fill().forEach(() => particles.push(new Particle(true)));
 }
 
+// p5.js setup function. Called once when the program starts.
+function setup() {
+  // Create a start button which upon pressed resets the state and starts the simulation
+  startButton = createButton('START NEW');
+  startButton.position(10, Y_MARGINAL_TOP - 80);
+  startButton.mousePressed(reset);
+
+  // Create a button to clean all
+  clearAllButton = createButton('CLEAR ALL');
+  clearAllButton.position(10, Y_MARGINAL_TOP - 50);
+  clearAllButton.mousePressed(clearAll);
+
+  // Create a slider to let user input the sick count at the beginning of simulation
+  sickSlider = createSlider(1, 20, 5, 1);
+  sickSlider.position(125, Y_MARGINAL_TOP/3);
+  
+  // Create a slider to let user input the probability for a particle to start as a stationary particle
+  stationaryProbabilitySlider = createSlider(0.05, 0.95, 0.1, 0.1);
+  stationaryProbabilitySlider.position(325, Y_MARGINAL_TOP/3);
+  
+  // Create the actual canvas
+  createCanvas(500, 700);
+}
+
+// p5.js draw function. Continuously executes to update the canvas.
 function draw() {
   background('rgb(255, 255, 255)');
+
+  // For each particle, we will
+  //  * calculate new position
+  //  * check whether it should be infected or not
+  //  * update its graphics in the canvas
   particles.forEach((particle, index) => {
     particle.move();
     particle.infect(particles.slice(index + 1));
     particle.update();
   });
-  strokeWeight(1)
-  stroke(0, 0, 0)
+
+  // Text properties
   fill(0, 0, 0);
-  line(0, height - Y_MARGINAL_BOTTOM, width, height - Y_MARGINAL_BOTTOM);
-  line(0, height - Y_MARGINAL_BOTTOM, width, height - Y_MARGINAL_BOTTOM);
-  
-  textSize(18);
+  textSize(16);
+
+  // Draw the text fields
   text(`sick count: ${sickSlider.value()}`, sickSlider.x + 20, Y_MARGINAL_TOP/4);
   text(`stationary: ${floor(stationaryProbabilitySlider.value() * 100)}%`, stationaryProbabilitySlider.x + 10, Y_MARGINAL_TOP/4);
   textSize(12);
