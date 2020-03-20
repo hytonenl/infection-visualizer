@@ -1,3 +1,5 @@
+'use strict';
+
 // Get a random runId of the provided length
 function getRunId(length) {
   var result = '';
@@ -5,7 +7,6 @@ function getRunId(length) {
   for ( var i = 0; i < length; i++ ) {
      result += characters[(floor(random(0, 1) * characters.length))];
   }
-  console.log({ result })
   return result;
 }
 

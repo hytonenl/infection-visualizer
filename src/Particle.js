@@ -1,3 +1,5 @@
+'use strict';
+
 const HEALTHY_COLOR = 'rgba(200, 200, 200, 0.7)';
 const SICK_COLOR = 'rgba(200, 50, 50, 0.7)';
 const IMMUNE_COLOR = 'rgba(0, 255, 0, 0.7)';
@@ -47,10 +49,12 @@ class Particle {
 
   // Move the particle to the direction of the speed
   move() {
-    if(this.x <= 0 || this.x >= width)
+    if(this.x <= 0 || this.x >= width) {
       this.xSpeed *= -1;
-    if(this.y <= 0 + Y_MARGINAL_TOP + this.r / 2 || this.y >= height - Y_MARGINAL_BOTTOM - this.r / 2)
+    }
+    if(this.y <= 0 + Y_MARGINAL_TOP + this.r / 2 || this.y >= height - Y_MARGINAL_BOTTOM - this.r / 2) {
       this.ySpeed *= -1;
+    }
     this.x += this.xSpeed;
     this.y += this.ySpeed;
   }

@@ -1,3 +1,5 @@
+'use strict';
+
 const Y_MARGINAL_TOP = 100; // Marginal size at the top of the canvas
 const Y_MARGINAL_BOTTOM = 100; // Marginal size at the bottom of the canvas
 
@@ -14,7 +16,7 @@ let particleCount = 100;    // Total number of particles in the canvas.
 let startSickCount = 3;     // Sick count at the beginning of the simulation.
 let stationaryProbability;  // Probability for a particle to be a stationary particle.
 let currentSickCount = 0;   // Count of sick particles at each frame.
-let sickHistory = {};       // Object to store history of previous runs. Visualized at the bottom of the canvas.
+let sickHistory = {};       // Object to store history of previous runs.
 
 // Update the statistics shown at the bottom of the canvas
 function updateStats() {
@@ -25,7 +27,8 @@ function updateStats() {
   textSize(20);
   text(currentSickCount, 10, height - 75);
 
-  // Refresh the sickHistory array only every 20th frame so that it does not get too expensive to draw
+  // Refresh the sickHistory array only every 20th frame so that it does not get too expensive to
+  // draw
   if (frameCount % 20 === 0 && currentSickCount) {
     sickHistory[runId].values.push(currentSickCount);
   }
@@ -37,20 +40,14 @@ function updateStats() {
     stroke(run.color);
     for (let i = 0; i < run.values.length; i++) {
       if (i) {
-        y_previous = run.values[i - 1] / particles.length * Y_MARGINAL_BOTTOM;
-        y_current = run.values[i] / particles.length * Y_MARGINAL_BOTTOM;
-        x_previous = (i - 1) * 3;
-        x_current = i * 3;
-        line(x_previous, height - y_previous, x_current, height - y_current);
+        const yPrevious = run.values[i - 1] / particles.length * Y_MARGINAL_BOTTOM;
+        const yCurrent = run.values[i] / particles.length * Y_MARGINAL_BOTTOM;
+        const xPrevious = (i - 1) * 3;
+        const xCurrent = i * 3;
+        line(xPrevious, height - yPrevious, xCurrent, height - yCurrent);
       }
     }
   });
-}
-
-// Clear the state, including the drawn sick history
-function clearAll() {
-  sickHistory = {};
-  reset();
 }
 
 // Reset particles and start the simulation
@@ -78,6 +75,12 @@ function reset() {
   Array(startSickCount).fill().forEach(() => particles.push(new Particle(true)));
 }
 
+// Clear the state, including the drawn sick history
+function clearAll() {
+  sickHistory = {};
+  reset();
+}
+
 // p5.js setup function. Called once when the program starts.
 function setup() {
   // Create a start button which upon pressed resets the state and starts the simulation
@@ -94,7 +97,8 @@ function setup() {
   sickSlider = createSlider(1, 20, 5, 1);
   sickSlider.position(125, Y_MARGINAL_TOP/3);
   
-  // Create a slider to let user input the probability for a particle to start as a stationary particle
+  // Create a slider to let user input the probability for a particle to start as a stationary
+  // particle
   stationaryProbabilitySlider = createSlider(0.05, 0.95, 0.1, 0.1);
   stationaryProbabilitySlider.position(325, Y_MARGINAL_TOP/3);
   
@@ -122,7 +126,8 @@ function draw() {
 
   // Draw the text fields
   text(`sick count: ${sickSlider.value()}`, sickSlider.x + 20, Y_MARGINAL_TOP/4);
-  text(`stationary: ${floor(stationaryProbabilitySlider.value() * 100)}%`, stationaryProbabilitySlider.x + 10, Y_MARGINAL_TOP/4);
+  text(`stationary: ${floor(stationaryProbabilitySlider.value() * 100)}%`,
+    stationaryProbabilitySlider.x + 10, Y_MARGINAL_TOP/4);
   textSize(12);
   text("1", sickSlider.x - 15, Y_MARGINAL_TOP/2);
   text("20", sickSlider.x + sickSlider.width + 15, Y_MARGINAL_TOP/2);
