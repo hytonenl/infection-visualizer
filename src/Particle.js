@@ -4,9 +4,7 @@ const HEALTHY_COLOR = 'rgba(200, 200, 200, 0.7)';
 const SICK_COLOR = 'rgba(200, 50, 50, 0.7)';
 const IMMUNE_COLOR = 'rgba(0, 255, 0, 0.7)';
 
-const HEALING_TIME = 20;          // Time it takes to heal from the infection (seconds)
 const INFECTION_THRESHOLD = 0.1;  // Chance to contract the disease while in range
-const INFECTION_RADIUS = 20;      // Radius where the sick may contract the disease
 const SPEED_SCALE = 1.2;          // Particle speed scale
 
 // Class to represent a single particle.
@@ -74,7 +72,7 @@ class Particle {
       this.color = IMMUNE_COLOR;
       this.isImmune = true;
       this.isInfected = false;
-    }, random(0.7, 1) * HEALING_TIME * 1000);
+    }, random(0.7, 1) * healingTime * 1000);
   }
 
   // Draw a line between this particle and its nearby particles. If any nearby particle is
@@ -82,7 +80,7 @@ class Particle {
   infect(particleArray) {
     particleArray.forEach((neighbor) => {
       const distance = dist(this.x, this.y, neighbor.x, neighbor.y);
-      if(distance < INFECTION_RADIUS) {
+      if(distance < infectionRadius) {
         // Draw a black line between the point and the neighbor
         strokeWeight(2);
         stroke('rgba(0, 0, 0, 1)');
