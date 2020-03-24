@@ -4,7 +4,6 @@ const HEALTHY_COLOR = 'rgba(200, 200, 200, 0.7)';
 const SICK_COLOR = 'rgba(200, 50, 50, 0.7)';
 const IMMUNE_COLOR = 'rgba(0, 255, 0, 0.7)';
 
-const INFECTION_THRESHOLD = 0.1;  // Chance to contract the disease while in range
 const SPEED_SCALE = 1.2;          // Particle speed scale
 
 // Class to represent a single particle.
@@ -87,7 +86,7 @@ class Particle {
         line(this.x, this.y, neighbor.x, neighbor.y);
 
         // Roll the dice for receiving infection
-        if (!this.isImmune && !this.isInfected && neighbor.isInfected && (random(0, 1) < INFECTION_THRESHOLD)) {
+        if (!this.isImmune && !this.isInfected && neighbor.isInfected && (random(0, 1) < infectivity)) {
           this.getInfection();
         }
       }

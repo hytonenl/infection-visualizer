@@ -14,28 +14,45 @@ let sickSlider;
 let stationaryProbabilitySlider;
 let infectionRadiusSlider;
 let healingTimeSlider;
+let infectivitySlider;
 
 // Runtime variables
 let runId;                  // Each run is assigned a unique runId to store run specific history.
 let particles = [];         // Array to store all the particles visible in the canvas.
 let particleCount = 100;    // Total number of particles in the canvas.
 
+// Simulation parameters
 let startSickCount;         // Sick count at the beginning of the simulation.
 let stationaryProbability;  // Probability for a particle to be a stationary particle.
 let infectionRadius;        // Radius where the sick may contract the disease
 let healingTime;            // Time it takes to heal from the infection (seconds)
+let infectivity;            // How well the infection spreads.
 
 let currentSickCount = 0;   // Count of sick particles at each frame.
 let sickHistory = {};       // Object to store history of previous runs.
 
+let sliderTextsAbove = [];
+let sliderTextsSides = [];
+
+function createSliderWithText(values) {
+  const { min, max, start, step, unit, row, col, text } = values;
+  const slider = createSlider(min, max, start, step);
+  slider.size(100)
+  slider.position((2 * col - 1) * WIDTH / 6 - 50, (2 * row - 1) * Y_MARGINAL_TOP / 5);
+
+  sliderTextsAbove.push({ text, target: slider, x: slider.x + 50, y: slider.y - 10, unit })
+  sliderTextsSides.push(
+    { text: `${min}${unit}`, x: slider.x - 15, y: slider.y + 15 },
+    { text: `${max}${unit}`, x: slider.x + slider.width + 15, y: slider.y + 15 }
+  );
+  return slider;
+}
+
 // Update the statistics shown at the bottom of the canvas
 function updateStats() {
-  // Add text to show the current count of sick people
   strokeWeight(2);
   stroke(0, 0, 0);
   fill(255, 0, 0);
-  textSize(20);
-  text(currentSickCount, 10, height - 75);
 
   // Refresh the sickHistory array only every 20th frame so that it does not get too expensive to
   // draw
@@ -45,7 +62,6 @@ function updateStats() {
 
   // Draw a bar chart at the bottom of the page plotting time vs. sick count
   strokeWeight(2);
-  strokeCap(ROUND);
   Object.values(sickHistory).forEach((run) => {
     stroke(run.color);
     for (let i = 0; i < run.values.length; i++) {
@@ -76,10 +92,11 @@ function reset() {
   currentSickCount = 0;
 
   // Read the initial particle & sick counts from the slider values
-  stationaryProbability = stationaryProbabilitySlider.value();
+  stationaryProbability = stationaryProbabilitySlider.value()/100;
   startSickCount = sickSlider.value();
   infectionRadius = infectionRadiusSlider.value();
   healingTime = healingTimeSlider.value();
+  infectivity = infectivitySlider.value()/50;
 
   // Create healthy particles
   Array(particleCount - startSickCount).fill().forEach(() => particles.push(new Particle()));
@@ -112,26 +129,21 @@ function setup() {
   clearAllButton.position(2 * WIDTH / 3 - 50, Y_MARGINAL_TOP - 25);
   clearAllButton.mousePressed(clearAll);
 
-  // Create a slider to let user input the sick count at the beginning of simulation
-  sickSlider = createSlider(1, 20, 5, 1);
-  sickSlider.size(100)
-  sickSlider.position(WIDTH/6 - 50, Y_MARGINAL_TOP/5);
-
-  // Create a slider to let user input the probability for a particle to start as a stationary
-  // particle
-  stationaryProbabilitySlider = createSlider(0.05, 0.95, 0.1, 0.1);
-  stationaryProbabilitySlider.size(100)
-  stationaryProbabilitySlider.position(3*WIDTH/6 - 50, Y_MARGINAL_TOP/5);
-
-  // Create a slider to let user input the interaction radius between two particles
-  infectionRadiusSlider = createSlider(10, 30, 20, 5);
-  infectionRadiusSlider.size(100)
-  infectionRadiusSlider.position(5*WIDTH/6 - 50, Y_MARGINAL_TOP/5);
-
-  // Create a slider to let user input the healing time of the disease
-  healingTimeSlider = createSlider(10, 50, 20, 5);
-  healingTimeSlider.size(100);
-  healingTimeSlider.position(WIDTH/6 - 50, 3*Y_MARGINAL_TOP/5);
+  // Define sliders
+  const sliders = [
+    { min: 1, max: 20, start: 5, step: 1, unit: '', row: 1, col: 1, text: 'sick count' },
+    { min: 5, max: 95, start: 10, step: 10, unit: '%', row: 1, col: 2, text: 'stationary' },
+    { min: 10, max: 30, start: 20, step: 5, unit: '', row: 1, col: 3, text: 'infection radius' },
+    { min: 10, max: 50, start: 20, step: 5, unit: 's', row: 2, col: 1, text: 'healing time' },
+    { min: 1, max: 10, start: 5, step: 1, unit: '', row: 2, col: 2, text: 'infectivity' },
+  ];
+  [
+    sickSlider,
+    stationaryProbabilitySlider,
+    infectionRadiusSlider,
+    healingTimeSlider,
+    infectivitySlider
+  ] = sliders.map(slider => createSliderWithText(slider))
 
   // Create the actual canvas
   createCanvas(WIDTH, HEIGHT);
@@ -157,24 +169,14 @@ function draw() {
   // Set text properties
   fill(0, 0, 0);
   strokeWeight(0.5);
+  textAlign(CENTER)
   textSize(14);
 
   // Draw the text fields
-  text(`sick count: ${sickSlider.value()}`, sickSlider.x + 12, sickSlider.y - 10);
-  text(`stationary: ${floor(stationaryProbabilitySlider.value() * 100)}%`,
-    stationaryProbabilitySlider.x + 8, sickSlider.y - 10);
-  text(`infection radius: ${infectionRadiusSlider.value()}`, infectionRadiusSlider.x, infectionRadiusSlider.y - 10);
-  text(`healing time: ${healingTimeSlider.value()} s`, healingTimeSlider.x, healingTimeSlider.y - 10);
+  sliderTextsAbove.forEach(t => text(`${t.text}: ${t.target.value()}${t.unit}`, t.x, t.y));
 
   textSize(12);
-  text("1", sickSlider.x - 15, sickSlider.y + 15);
-  text("20", sickSlider.x + sickSlider.width + 15, sickSlider.y + 15);
-  text("5%", stationaryProbabilitySlider.x - 20, stationaryProbabilitySlider.y + 15);
-  text("95%", stationaryProbabilitySlider.x + stationaryProbabilitySlider.width + 10, stationaryProbabilitySlider.y + 15);
-  text("10", infectionRadiusSlider.x - 15, infectionRadiusSlider.y + 15);
-  text("30", infectionRadiusSlider.x + infectionRadiusSlider.width + 15, infectionRadiusSlider.y + 15);
-  text("10s", healingTimeSlider.x - 25, healingTimeSlider.y + 15);
-  text("50s", healingTimeSlider.x + healingTimeSlider.width + 15, healingTimeSlider.y + 15);
+  sliderTextsSides.forEach(t => text(t.text, t.x, t.y));
 
   // Finally, update the run specific statistics
   updateStats();
