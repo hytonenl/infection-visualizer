@@ -15,21 +15,23 @@ let stationaryProbabilitySlider;
 let infectionRadiusSlider;
 let healingTimeSlider;
 let infectivitySlider;
+let capacitySlider;
 
 // Runtime variables
-let runId;                  // Each run is assigned a unique runId to store run specific history.
 let particles = [];         // Array to store all the particles visible in the canvas.
 let particleCount = 100;    // Total number of particles in the canvas.
 
-// Simulation parameters
+// Simulation parameters defined by slider values
 let startSickCount;         // Sick count at the beginning of the simulation.
 let stationaryProbability;  // Probability for a particle to be a stationary particle.
 let infectionRadius;        // Radius where the sick may contract the disease
 let healingTime;            // Time it takes to heal from the infection (seconds)
 let infectivity;            // How well the infection spreads.
+let capacity;               // Hospital capacity. Infected outside capacity may die.
 
 let currentSickCount = 0;   // Count of sick particles at each frame.
-let sickHistory = {};       // Object to store history of previous runs.
+let currentHealedCount = 0; // Count of particles that have healed from the infection.
+let stats = {};             // Object to store history of the run.
 
 let sliderTextsAbove = [];
 let sliderTextsSides = [];
@@ -43,53 +45,62 @@ function createSliderWithText(values) {
   sliderTextsAbove.push({ text, target: slider, x: slider.x + 50, y: slider.y - 10, unit })
   sliderTextsSides.push(
     { text: `${min}${unit}`, x: slider.x - 15, y: slider.y + 15 },
-    { text: `${max}${unit}`, x: slider.x + slider.width + 15, y: slider.y + 15 }
+    { text: `${max}${unit}`, x: slider.x + slider.width + 17, y: slider.y + 15 }
   );
   return slider;
 }
 
 // Update the statistics shown at the bottom of the canvas
 function updateStats() {
+  const stepSize = 2;
+  const statsMaxLength = width / stepSize;
+
   strokeWeight(2);
   stroke(0, 0, 0);
   fill(255, 0, 0);
 
-  // Refresh the sickHistory array only every 20th frame so that it does not get too expensive to
-  // draw
-  if (frameCount % 20 === 0 && currentSickCount) {
-    sickHistory[runId].values.push(currentSickCount);
+  // Refresh the stats only every 20th frame so that it does not get too expensive to draw
+  if (frameCount % 10 === 0 && currentSickCount) {
+    stats.sick.push(currentSickCount);
+    stats.healed.push(currentHealedCount);
+    if (stats.sick.length > statsMaxLength) {
+      stats.sick.shift();
+      stats.healed.shift();
+    }
   }
 
-  // Draw a bar chart at the bottom of the page plotting time vs. sick count
-  strokeWeight(2);
-  Object.values(sickHistory).forEach((run) => {
-    stroke(run.color);
-    for (let i = 0; i < run.values.length; i++) {
-      if (i) {
-        const yPrevious = run.values[i - 1] / particles.length * Y_MARGINAL_BOTTOM;
-        const yCurrent = run.values[i] / particles.length * Y_MARGINAL_BOTTOM;
-        const xPrevious = (i - 1) * 3;
-        const xCurrent = i * 3;
-        line(xPrevious, height - yPrevious, xCurrent, height - yCurrent);
+  if (stats.sick) {
+    // Draw a bar chart at the bottom of the page plotting time vs. sick count
+    strokeWeight(stepSize);
+    strokeCap(SQUARE);
+    for (let i = 0; i < stats.sick.length; i++) {
+      const x = i * stepSize;
+      const ySick = stats.sick[i] / particles.length * Y_MARGINAL_BOTTOM;
+      stroke(color('rgba(200, 50, 50, 0.5)'));
+      line(x, height, x, height - ySick);
+
+      const yHealed = ySick + (stats.healed[i] / particles.length * Y_MARGINAL_BOTTOM);
+      stroke(color('rgba(0, 255, 0, 0.5)'));
+      if (height - ySick !== height - yHealed) {
+        line(x, height - ySick, x, height - yHealed);
       }
+
+      stroke(color('rgba(200, 200, 200, 0.5)'));
+      line(x, height - yHealed, x, height - Y_MARGINAL_BOTTOM);
     }
-  });
+  }
 }
 
 // Reset particles and start the simulation
 function reset() {
-  // Assign new runId
-  runId = getRunId(10);
-
   // Clear the timeouts of any particles from previous run
   particles.forEach(particle => clearTimeout(particle.timeoutId));
 
   // Reset particles and statistics
   particles = [];
-  sickHistory[runId] = {};
-  sickHistory[runId].color = getRandomColor();
-  sickHistory[runId].values = [];
-  currentSickCount = 0;
+  stats = {};
+  stats.sick = [];
+  stats.healed = [];
 
   // Read the initial particle & sick counts from the slider values
   stationaryProbability = stationaryProbabilitySlider.value()/100;
@@ -97,6 +108,7 @@ function reset() {
   infectionRadius = infectionRadiusSlider.value();
   healingTime = healingTimeSlider.value();
   infectivity = infectivitySlider.value()/50;
+  capacity = capacitySlider.value();
 
   // Create healthy particles
   Array(particleCount - startSickCount).fill().forEach(() => particles.push(new Particle()));
@@ -106,7 +118,7 @@ function reset() {
 
 // Clear the state, including the drawn sick history
 function clearAll() {
-  sickHistory = {};
+  stats = {};
 
   // Clear the timeouts of any particles from previous run
   particles.forEach(particle => clearTimeout(particle.timeoutId));
@@ -136,13 +148,15 @@ function setup() {
     { min: 10, max: 30, start: 20, step: 5, unit: '', row: 1, col: 3, text: 'infection radius' },
     { min: 10, max: 50, start: 20, step: 5, unit: 's', row: 2, col: 1, text: 'healing time' },
     { min: 1, max: 10, start: 5, step: 1, unit: '', row: 2, col: 2, text: 'infectivity' },
+    { min: 50, max: 90, start: 75, step: 5, unit: '%', row: 2, col: 3, text: 'hospital capacity' },
   ];
   [
     sickSlider,
     stationaryProbabilitySlider,
     infectionRadiusSlider,
     healingTimeSlider,
-    infectivitySlider
+    infectivitySlider,
+    capacitySlider,
   ] = sliders.map(slider => createSliderWithText(slider))
 
   // Create the actual canvas
@@ -152,6 +166,13 @@ function setup() {
 // p5.js draw function. Continuously executes to update the canvas.
 function draw() {
   background('rgb(255, 255, 255)');
+
+  stroke(200, 200, 200);
+  strokeWeight(2);
+  line(0, Y_MARGINAL_TOP, width, Y_MARGINAL_TOP);
+  line(0, height - Y_MARGINAL_BOTTOM, width, height - Y_MARGINAL_BOTTOM);
+  line(1, Y_MARGINAL_TOP, 1, height - Y_MARGINAL_BOTTOM);
+  line(width - 1, Y_MARGINAL_TOP, width - 1, height - Y_MARGINAL_BOTTOM);
 
   // For each particle, we will
   //  * calculate new position
@@ -165,10 +186,13 @@ function draw() {
 
   // Update current sick count
   currentSickCount = particles.filter(p => p.isInfected).length;
+  // Update current healed count
+  currentHealedCount = particles.filter(p => p.isImmune).length;
 
   // Set text properties
+  strokeWeight(0.2);
   fill(0, 0, 0);
-  strokeWeight(0.5);
+  stroke(0, 0, 0);
   textAlign(CENTER)
   textSize(14);
 
@@ -180,4 +204,12 @@ function draw() {
 
   // Finally, update the run specific statistics
   updateStats();
+
+  // Draw a line for hospital capacity
+  if (capacity) {
+    strokeWeight(1);
+    stroke(0, 0, 0);
+    fill(0, 0, 0);
+    line(0, height - capacity, width, height - capacity);
+  }
 }

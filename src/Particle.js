@@ -10,8 +10,8 @@ const SPEED_SCALE = 1.2;          // Particle speed scale
 class Particle {
   constructor(isInfected = false) {
     // Start at a random position in the canvas
-    this.x = random(0, width);
-    this.y = random(0 + Y_MARGINAL_TOP, height - Y_MARGINAL_BOTTOM);
+    this.x = random(5, width - 5);
+    this.y = random(0 + Y_MARGINAL_TOP + 5, height - Y_MARGINAL_BOTTOM - 5);
     this.r = 10;
 
     // Roll the dice for the particle being a stationary particle
@@ -47,7 +47,7 @@ class Particle {
   // Move the particle to the direction of the speed
   move() {
     // Invert the x-speed if the particle hits the walls
-    if(this.x <= 0 || this.x >= width) {
+    if(this.x <= this.r / 2 || this.x >= width - this.r / 2) {
       this.xSpeed *= -1;
     }
 
