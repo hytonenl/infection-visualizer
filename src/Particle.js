@@ -3,8 +3,9 @@
 const HEALTHY_COLOR = 'rgba(200, 200, 200, 0.7)';
 const SICK_COLOR = 'rgba(200, 50, 50, 0.7)';
 const IMMUNE_COLOR = 'rgba(0, 255, 0, 0.7)';
+const DEAD_COLOR = 'rgba(0, 0, 0, 0.7)';
 
-const SPEED_SCALE = 1.2;          // Particle speed scale
+const SPEED_SCALE = 1.2; // Particle speed scale
 
 // Class to represent a single particle.
 class Particle {
@@ -78,18 +79,34 @@ class Particle {
   // infected, there is a chance also this particle gets infected.
   infect(particleArray) {
     particleArray.forEach((neighbor) => {
-      const distance = dist(this.x, this.y, neighbor.x, neighbor.y);
-      if(distance < infectionRadius) {
-        // Draw a black line between the point and the neighbor
-        strokeWeight(2);
-        stroke('rgba(0, 0, 0, 1)');
-        line(this.x, this.y, neighbor.x, neighbor.y);
+      if (!neighbor.isDead) {
+        const distance = dist(this.x, this.y, neighbor.x, neighbor.y);
+        if(distance < infectionRadius) {
+          // Draw a black line between the point and the neighbor
+          strokeWeight(2);
+          stroke('rgba(0, 0, 0, 1)');
+          line(this.x, this.y, neighbor.x, neighbor.y);
 
-        // Roll the dice for receiving infection
-        if (!this.isImmune && !this.isInfected && neighbor.isInfected && (random(0, 1) < infectivity)) {
-          this.getInfection();
+          if (!this.isImmune && !this.isInfected) {
+            // Roll the dice for receiving infection
+            if (neighbor.isInfected && (random(0, 1) < infectivity)) {
+              this.getInfection();
+            }
+          } else if (this.isInfected && !neighbor.isImmune && !neighbor.isInfected) {
+            // Roll the dice for the neighbor to receive an infection
+            if (random(0, 1) < infectivity) {
+              neighbor.getInfection();
+            }
+          }
         }
       }
     });
+  }
+
+  // Kill this particle
+  kill() {
+    clearTimeout(this.timeoutId);
+    this.isDead = true;
+    this.color = DEAD_COLOR;
   }
 }
