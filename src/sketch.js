@@ -222,10 +222,10 @@ function draw() {
   // If there are more infected particles that the hospital capacity, roll the dice for killing any
   // of the particles above the capacity
   const currentinfectedCount = particles.filter(p => p.isInfected).length;
-  const outsideCapacity = currentinfectedCount - capacity;
+  const outsideCapacity = currentinfectedCount - (capacity/100) * particleCount;
   if (outsideCapacity > 0) {
     particles.slice(particles.length - outsideCapacity).forEach((p) => {
-      if (random(0, 1) < 0.002) {
+      if (random(0, 1) < 0.001) {
         p.kill();
       }
     });
