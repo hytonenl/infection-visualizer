@@ -139,7 +139,6 @@ function reset() {
   infectionRadius = infectionRadiusSlider.value();
   healingTime = healingTimeSlider.value();
   infectivity = infectivitySlider.value()/200;
-  capacity = capacitySlider.value();
 
   // Create healthy particles
   Array(particleCount - startinfectedCount).fill().forEach(() => particles.push(new Particle()));
@@ -200,6 +199,7 @@ function setup() {
 // p5.js draw function. Continuously executes to update the canvas.
 function draw() {
   background('rgb(255, 255, 255)');
+  capacity = capacitySlider.value();
 
   stroke(200, 200, 200);
   strokeWeight(2);
@@ -248,10 +248,12 @@ function draw() {
   updateStats();
 
   // Draw a line for hospital capacity
-  if (capacity) {
-    strokeWeight(1);
-    stroke(0, 0, 0);
-    fill(0, 0, 0);
-    line(0, height - capacity, width, height - capacity);
-  }
+  strokeWeight(1);
+  stroke(0, 0, 0);
+  fill(0, 0, 0);
+  const capacityLine = line(0, height - capacity, width, height - capacity);
+
+  strokeWeight(0.2);
+  textAlign(LEFT)
+  text('capacity', 5, height - capacity + 12);
 }
